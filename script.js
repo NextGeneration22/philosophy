@@ -1,6 +1,7 @@
 const cards = document.querySelectorAll('.card');
 const flashcardButton = document.getElementById('flashcard-reader');
 const flashcardStatus = document.getElementById('flashcard-status');
+const flippedCards = new Set(); // Track flipped cards in current session
 
 function extractQuoteText(paragraph) {
     let quote = '';
@@ -49,8 +50,18 @@ function showStatus(message) {
 }
 
 function chooseRandomCard() {
-    const index = Math.floor(Math.random() * cards.length);
-    return cards[index];
+    // Get cards that haven't been flipped yet
+    const availableCards = Array.from(cards).filter(card => !flippedCards.has(card));
+    
+    // If all cards have been flipped, reset and start over
+    if (availableCards.length === 0) {
+        flippedCards.clear();
+        return cards[Math.floor(Math.random() * cards.length)];
+    }
+    
+    // Choose a random card from available ones
+    const randomIndex = Math.floor(Math.random() * availableCards.length);
+    return availableCards[randomIndex];
 }
 
 function flipCard(card) {
@@ -78,7 +89,16 @@ function startFlashcard() {
         card.scrollIntoView({ behavior: 'smooth', block: 'center' });
         setTimeout(() => {
             flipCard(card);
-            showStatus('تم فتح البطاقة. تحقق من اسم الفيلسوف والمحتوى خلف البطاقة.');
+            // Track this card as flipped
+            flippedCards.add(card);
+            
+            // Check if all cards have been flipped
+            if (flippedCards.size === cards.length) {
+                showStatus('تم الانتهاء من جميع البطاقات! سيتم البدء من جديد.');
+            } else {
+                // Show progress
+                showStatus(`تم فتح البطاقة. (${flippedCards.size}/${cards.length})`);
+            }
             flashcardButton.disabled = false;
         }, 3000);
     });
