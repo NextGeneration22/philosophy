@@ -93,9 +93,10 @@ h1 {
 
 .flashcard-controls {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
-    gap: 12px;
+    justify-content: center;
+    gap: 16px;
     max-width: 820px;
     margin: 0 auto 24px;
     padding: 18px 22px;
@@ -103,47 +104,94 @@ h1 {
     background: linear-gradient(180deg, rgba(255,255,255,0.95), rgba(240,248,255,0.95));
     box-shadow: 0 18px 40px rgba(37, 99, 235, 0.11);
     border: 1px solid rgba(59, 130, 246, 0.14);
+    flex-wrap: wrap;
 }
 
-#flashcard-reader {
-    width: 100%;
-    max-width: 320px;
-    padding: 14px 22px;
+#flashcard-reader,
+#opositQuot-button,
+#quiz-button,
+#quiz-button {
+    padding: 14px 28px;
     border: none;
     border-radius: 999px;
-    background: #2563eb;
     color: #ffffff;
     font-size: 1rem;
     font-weight: 700;
     cursor: pointer;
     transition: transform 0.22s ease, box-shadow 0.22s ease, background 0.22s ease;
+    white-space: nowrap;
+}
+
+#flashcard-reader {
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
     box-shadow: 0 12px 28px rgba(37, 99, 235, 0.19);
+}
+
+#quiz-button {
+    background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+    box-shadow: 0 12px 28px rgba(124, 58, 237, 0.19);
+}
+
+#opositQuot-button{
+    background: linear-gradient(135deg, #3a3d3e 0%, #e6e8eb 100%);
+    box-shadow: 0 12px 28px rgba(124, 58, 237, 0.19);
 }
 
 #flashcard-reader:hover,
 #flashcard-reader:focus {
-    background: #1d4ed8;
-    transform: translateY(-1px);
+    background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+    transform: translateY(-2px);
     box-shadow: 0 16px 34px rgba(37, 99, 235, 0.24);
 }
 
-#flashcard-reader:disabled {
-    background: #93c5fd;
+#opositQuot-button:hover,
+#opositQuot-button:focus{
+    background: linear-gradient(135deg, #e1e4e8 0%, #3e465c 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 16px 34px rgba(124, 58, 237, 0.24);
+}
+
+#quiz-button:hover,
+#quiz-button:focus {
+    background: linear-gradient(135deg, #6d28d9 0%, #5b21b6 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 16px 34px rgba(124, 58, 237, 0.24);
+}
+
+#flashcard-reader:disabled,
+#opositQuot-button:disabled,
+#quiz-button:disabled {
+    background: #d1d5db;
     cursor: wait;
     box-shadow: none;
+    transform: none;
 }
 
 .flashcard-status {
-    width: 100%;
-    max-width: 760px;
+    position: fixed;
+    top: 18px;
+    left: 50%;
+    transform: translate(-50%, -12px);
+    z-index: 9999;
+    width: auto;
+    max-width: calc(100% - 32px);
     padding: 14px 18px;
     border-radius: 16px;
-    background: #eff6ff;
-    color: #1e40af;
+    background: rgba(15, 23, 42, 0.78);
+    color: #f8fafc;
     font-size: 0.98rem;
     line-height: 1.6;
     text-align: center;
-    border: 1px solid rgba(59, 130, 246, 0.18);
+    border: 1px solid rgba(148, 163, 184, 0.28);
+    box-shadow: 0 18px 30px rgba(15, 23, 42, 0.18);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.26s ease, transform 0.26s ease;
+}
+
+.flashcard-status.visible {
+    opacity: 1;
+    transform: translate(-50%, 0);
 }
 
 @media (max-width: 900px) {
@@ -154,6 +202,20 @@ h1 {
 
     .card__inner {
         min-height: 340px;
+    }
+}
+
+@media (max-width: 768px) {
+    .flashcard-controls {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    #flashcard-reader,
+    #quiz-button {
+        width: 100%;
+        padding: 14px 22px;
+        font-size: 0.98rem;
     }
 }
 
@@ -172,9 +234,9 @@ h1 {
         gap: 10px;
     }
 
-    #flashcard-reader {
+    #flashcard-reader,
+    #quiz-button {
         width: 100%;
-        max-width: none;
         padding: 14px 18px;
         font-size: 0.98rem;
     }

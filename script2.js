@@ -1,10 +1,5 @@
 const cards = document.querySelectorAll('.card');
-const flashcardButton = document.getElementById('flashcard-reader');
-const flashcardStatus = document.getElementById('flashcard-status');
 const opositviewer = document.getElementById('opositQuot-button');
-const flippedCards = new Set(); // Track flipped cards in current session
-let statusHideTimer = null;
-
 
 const QuoteAndOposit = [
     ["تعتمد الهوية حسب أرثر شوبنهاور على الإرادة، حيث أن الإرادة هي تلك الآلةأوالقالب التي تبني الشخص، ومنها يستمد الشخص هويته.", "ترتبط هوية الشخص بالفكر الحسي حسب جون لوك وتبقى هوية الشخص ثابتة مادامت الذاكرة تحافظ على هذا الوعي الحسي."],
@@ -27,84 +22,6 @@ const QuoteAndOposit = [
     ["حسب أرسطو، إن العادل هو الذي يتصرّف طبقاً لمبدأ الإنصاف وليس حسب القوانين، لأن القوانين لها وضع عام ولا تأخذ بعين الاعتبار تلك الحالات الخاصة.","يعتقد جون راولس أن العدالة تقوم على تحقيق المساواة بين الأفراد في جميع الفرص المتاحة لتطوير قدراتهم ومواهبهم، ولكن ليس بالضرورة أن تكون النتائج متساوية."]
 ];
 
-// Select all <p> tags inside the back face of the cards
-const philosopherQuotes = document.querySelectorAll('.card__back p');
-
-
-
-function extractQuoteText(paragraph) {
-    let quote = '';
-    paragraph.childNodes.forEach(node => {
-        if (node.nodeType === Node.TEXT_NODE) {
-            quote += node.textContent;
-        }
-    });
-    return quote.trim();
-}
-
-function getCardQuote(card) {
-    const paragraphs = Array.from(card.querySelectorAll('.card__back p'));
-    const quotes = paragraphs
-        .map(paragraph => extractQuoteText(paragraph))
-        .filter(text => text.length > 0);
-    if (quotes.length === 0) {
-        return '';
-    }
-    const randomIndex = Math.floor(Math.random() * quotes.length);
-    return quotes[randomIndex];
-}
-
-function speakText(text, onEnd) {
-    if (!window.speechSynthesis) {
-        if (typeof onEnd === 'function') {
-            onEnd();
-        }
-        return;
-    }
-    speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'ar-SA';
-    utterance.rate = 0.95;
-    utterance.pitch = 1;
-    if (typeof onEnd === 'function') {
-        utterance.onend = onEnd;
-    }
-    speechSynthesis.speak(utterance);
-}
-
-function showStatus(message, duration = 3800) {
-    if (!flashcardStatus) {
-        return;
-    }
-
-    flashcardStatus.textContent = message;
-    flashcardStatus.classList.add('visible');
-
-    if (statusHideTimer) {
-        clearTimeout(statusHideTimer);
-    }
-
-    statusHideTimer = setTimeout(() => {
-        flashcardStatus.classList.remove('visible');
-        statusHideTimer = null;
-    }, duration);
-}
-
-function chooseRandomCard() {
-    // Get cards that haven't been flipped yet
-    const availableCards = Array.from(cards).filter(card => !flippedCards.has(card));
-    
-    // If all cards have been flipped, reset and start over
-    if (availableCards.length === 0) {
-        flippedCards.clear();
-        return cards[Math.floor(Math.random() * cards.length)];
-    }
-    
-    // Choose a random card from available ones
-    const randomIndex = Math.floor(Math.random() * availableCards.length);
-    return availableCards[randomIndex];
-}
-
 function flipCard(card) {
     card.classList.add('flipped');
 }
@@ -113,213 +30,176 @@ function unflipCard(card) {
     card.classList.remove('flipped');
 }
 
-/// guess the oposite function
 opositviewer.addEventListener('click', () => {
-    const randoCardIndex = Math.floor(Math.random() * cards.length);
-    const cardo = cards[randoCardIndex];
-    cardo.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const randomIndex = Math.floor(Math.random() * cards.length);
+    const card = cards[randomIndex];
+    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
-    const quotecards = cardo.querySelectorAll('.card__back p');
-    const quotes = Array.from(quotecards).map(p => p.textContent.trim()).filter(text => text.length > 0);
-    if (quotes.length === 0) {
-        showStatus('لم يتم العثور على قولة في البطاقة العشوائية. حاول مرة أخرى.');
-        return;
-    }
+    const quotecards = card.querySelectorAll('.card__back p');
+    const quotes = Array.from(quotecards).map(p => p.textContent.trim());
+    if (quotes.length > 0) {
+        const currentQuote = quotes[Math.floor(Math.random() * quotes.length)];
 
-    const currentQuote = quotes[Math.floor(Math.random() * quotes.length)];
-    showStatus('تم اختيار القولة. استمع ثم سأعرض القولة المعارضة بعد قليل.');
-
-    // Find opposite quote
-    let oppositeQuote = null;
-    for (const pair of QuoteAndOposit) {
-        if (pair.includes(currentQuote)) {
-            oppositeQuote = pair[0] === currentQuote ? pair[1] : pair[0];
-            break;
-        }
-    }
-
-    const utterance = new SpeechSynthesisUtterance(currentQuote);
-    utterance.lang = 'ar';
-
-    utterance.onend = () => {
-        if (!oppositeQuote) {
-            showStatus('لم يتم العثور على قولة معاكسة لهذه القولة. حاول مرة أخرى.');
-            return;
-        }
-
-        showStatus('أحسنت! الآن سأعرض القولة المعارضة وأفتح البطاقة المناسبة.');
-        setTimeout(() => {
-            let foundOppositeCard = false;
-            for (const c of cards) {
-                const pTags = c.querySelectorAll('.card__back p');
-                for (const p of pTags) {
-                    if (p.textContent.trim() === oppositeQuote) {
-                        c.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        flipCard(c);
-                        foundOppositeCard = true;
-
-                        const utteranceOpp = new SpeechSynthesisUtterance(oppositeQuote);
-                        utteranceOpp.lang = 'ar';
-                        utteranceOpp.onend = () => {
-                            showStatus('تم عرض القولة المعارضة وفتح البطاقة المناسبة. يمكنك الضغط على الزر مرة أخرى لتجربة أخرى.');
-                        };
-                        speechSynthesis.speak(utteranceOpp);
-                        break;
-                    }
-                }
-                if (foundOppositeCard) {
-                    break;
-                }
+        // Find opposite quote
+        let oppositeQuote = null;
+        for (const pair of QuoteAndOposit) {
+            if (pair.includes(currentQuote)) {
+                oppositeQuote = pair[0] === currentQuote ? pair[1] : pair[0];
+                break;
             }
-            if (!foundOppositeCard) {
-                showStatus('تم العثور على القولة المعارضة ولكن لم يتم العثور على البطاقة الخاصة بها.');
-            }
-        }, 4000); // 4 second delay
-    };
-
-    speechSynthesis.speak(utterance);
-    flipCard(cardo);
-});
-///
-
-function resetAllCards() {
-    // Flip all cards back to image side (front)
-    cards.forEach(card => {
-        if (card.classList.contains('flipped')) {
-            card.classList.remove('flipped');
         }
-    });
-    showStatus('تم إعادة تعيين جميع البطاقات إلى الصورة الأمامية.');
-}
 
-function startFlashcard() {
-    if (!flashcardButton) {
-        return;
-    }
+        // Speak the current quote
+        const utterance = new SpeechSynthesisUtterance(currentQuote);
+        utterance.lang = "ar";
 
-    flashcardButton.disabled = true;
-    const card = chooseRandomCard();
-    unflipCard(card);
-
-    const quote = getCardQuote(card) || 'لا توجد اقتباسة لعرضها في هذه البطاقة.';
-    showStatus('استمع إلى الاقتباس وحاول تخمين الفيلسوف...');
-
-    speakText(quote, () => {
-        showStatus('سأنتقل الآن إلى البطاقة المحددة ثم سأفتحها بعد ثوانٍ قليلة.');
-        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        setTimeout(() => {
-            flipCard(card);
-            // Track this card as flipped
-            flippedCards.add(card);
-            
-            // Check if all cards have been flipped
-            if (flippedCards.size === cards.length) {
-                showStatus('تم الانتهاء من جميع البطاقات! سيتم البدء من جديد.');
-            } else {
-                // Show progress
-                showStatus(`تم فتح البطاقة. (${flippedCards.size}/${cards.length})`);
-            }
-            flashcardButton.disabled = false;
-        }, 3000);
-    });
-}
-
-function getPhilosopherName(card) {
-    const frontText = card.querySelector('.card__front p');
-    return frontText ? frontText.textContent.trim() : 'فيلسوف غير معروف';
-}
-
-function getH4Headers(card) {
-    const headers = Array.from(card.querySelectorAll('.card__back h4'));
-    return headers.map(h4 => h4.textContent.trim()).filter(text => text.length > 0);
-}
-
-function startQuiz() {
-    const quizButton = document.getElementById('quiz-button');
-    if (!quizButton) {
-        return;
-    }
-
-    quizButton.disabled = true;
-    showStatus('جاري تحضير الاختبار...');
-
-    // Step 1: Flip all cards to show the text side (back)
-    cards.forEach(card => {
-        if (!card.classList.contains('flipped')) {
-            card.classList.add('flipped');
-        }
-    });
-
-    // Step 2: Choose a random card
-    const randomCard = cards[Math.floor(Math.random() * cards.length)];
-    const philosopherName = getPhilosopherName(randomCard);
-    const h4Headers = getH4Headers(randomCard);
-
-    if (h4Headers.length === 0) {
-        showStatus('عذراً، لا توجد عناوين في هذه البطاقة.');
-        quizButton.disabled = false;
-        return;
-    }
-
-    // Step 3: Choose a random H4 header
-    const randomH4 = h4Headers[Math.floor(Math.random() * h4Headers.length)];
-
-    // Step 4: Announce the philosopher name
-    showStatus('استمع جيداً واحزر من يكون الفيلسوف...');
-    speakText(`الفيلسوف: ${philosopherName}`, () => {
-        // Step 5: Now read the H4 header
-        setTimeout(() => {
-            speakText(randomH4, () => {
-                // Step 6: Wait longer for user to read and guess the quote
-                showStatus('لديك وقتاً لقراءة ومحاولة التخمين...');
+        // When finished speaking, wait 2 seconds then flip opposite card and speak it
+        utterance.onend = () => {
+            if (oppositeQuote) {
                 setTimeout(() => {
-                    // Step 7: Scroll to the card
-                    randomCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    
-                    // Step 8: Wait a moment then unflip the card to reveal the philosopher's image
-                    setTimeout(() => {
-                        if (randomCard.classList.contains('flipped')) {
-                            randomCard.classList.remove('flipped');
+                    for (const c of cards) {
+                        const pTags = c.querySelectorAll('.card__back p');
+                        for (const p of pTags) {
+                            if (p.textContent.trim() === oppositeQuote) {
+                                c.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                flipCard(c);
+
+                                const utteranceOpp = new SpeechSynthesisUtterance(oppositeQuote);
+                                utteranceOpp.lang = "ar";
+                                speechSynthesis.speak(utteranceOpp);
+                                break;
+                            }
                         }
-                        showStatus(`تم الكشف! الفيلسوف هو: ${philosopherName}`);
-                        setTimeout(() => {
-                            showStatus('الضغط على الزر مجدداً للاختبار التالي...');
-                            quizButton.disabled = false;
-                        }, 2000);
-                    }, 500);
-                }, 8000);
-            });
-        }, 500);
-    });
-}
-
-function attachCardInteractions() {
-    cards.forEach(card => {
-        card.addEventListener('click', () => card.classList.toggle('flipped'));
-        card.addEventListener('keydown', event => {
-            if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault();
-                card.classList.toggle('flipped');
+                    }
+                }, 4000); // 2 second delay
             }
-        });
-    });
-}
+        };
 
-attachCardInteractions();
+        speechSynthesis.speak(utterance);
+    }
 
-if (flashcardButton) {
-    flashcardButton.addEventListener('click', () => {
-        const hasFlippedCards = Array.from(cards).some(card => card.classList.contains('flipped'));
+    flipCard(card);
+});
 
-        if (hasFlippedCards) {
-            resetAllCards();
-        }
 
-        startFlashcard();
-    });
-}
+// function getRandomCard() {
+//     if (!cards || cards.length === 0) {
+//         return null;
+//     }
+//     return cards[Math.floor(Math.random() * cards.length)];
+// }
 
-const quizButton = document.getElementById('quiz-button');
-if (quizButton) {
-    quizButton.addEventListener('click', startQuiz);
-}
+// function getRandomQuoteFromCard(card) {
+//     if (!card) {
+//         return null;
+//     }
+//     const pTags = Array.from(card.querySelectorAll('.card__back p'))
+//         .map(p => p.textContent.trim())
+//         .filter(text => text.length > 0);
+//     if (pTags.length === 0) {
+//         return null;
+//     }
+//     return pTags[Math.floor(Math.random() * pTags.length)];
+// }
+
+// function resetAllCards() {
+//     cards.forEach(card => {
+//         if (card.classList.contains('flipped')) {
+//             card.classList.remove('flipped');
+//         }
+//     });
+// }
+
+// function normalizeText(text) {
+//     return text.replace(/\s+/g, ' ').trim();
+// }
+
+// function findOppositeQuote(quote) {
+//     const normalizedQuote = normalizeText(quote);
+//     for (const pair of QuoteAndOposit) {
+//         const first = normalizeText(pair[0]);
+//         const second = normalizeText(pair[1]);
+//         if (first === normalizedQuote) {
+//             return pair[1];
+//         }
+//         if (second === normalizedQuote) {
+//             return pair[0];
+//         }
+//     }
+//     return null;
+// }
+
+// function findCardByQuote(quote) {
+//     const normalizedQuote = normalizeText(quote);
+//     return Array.from(cards).find(card => {
+//         return Array.from(card.querySelectorAll('.card__back p'))
+//             .map(p => normalizeText(p.textContent))
+//             .includes(normalizedQuote);
+//     }) || null;
+// }
+
+// function speakText(text, onEnd) {
+//     if (!window.speechSynthesis) {
+//         if (typeof onEnd === 'function') {
+//             onEnd();
+//         }
+//         return;
+//     }
+//     speechSynthesis.cancel();
+//     const utterance = new SpeechSynthesisUtterance(text);
+//     utterance.lang = 'ar';
+//     utterance.rate = 0.95;
+//     utterance.pitch = 1;
+//     if (typeof onEnd === 'function') {
+//         utterance.onend = onEnd;
+//     }
+//     speechSynthesis.speak(utterance);
+// }
+
+// opositviewer.addEventListener('click', () => {
+//     resetAllCards();
+
+//     const card = getRandomCard();
+//     if (!card) {
+//         console.log('لم يتم العثور على بطاقة عشوائية.');
+//         return;
+//     }
+
+//     const quote = getRandomQuoteFromCard(card);
+//     if (!quote) {
+//         console.log('لم يتم العثور على اقتباس في البطاقة المختارة.');
+//         return;
+//     }
+
+//     const oppositeQuote = findOppositeQuote(quote);
+//     if (!oppositeQuote) {
+//         console.log('لم يتم العثور على القولة المعاكسة في مصفوفة QuoteAndOposit.');
+//     }
+
+//     // Flip and read the first random card.
+//     unflipCard(card);
+//     flipCard(card);
+//     card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+//     speakText(quote, () => {
+//         // Wait a bit for guessing.
+//         setTimeout(() => {
+//             if (!oppositeQuote) {
+//                 console.log('لا توجد قولة مقابلة للعرض.');
+//                 return;
+//             }
+
+//             const oppositeCard = findCardByQuote(oppositeQuote);
+//             if (!oppositeCard) {
+//                 console.log('لم يتم العثور على البطاقة التي تحتوي القولة المقابلة.');
+//                 return;
+//             }
+
+//             oppositeCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+//             setTimeout(() => {
+//                 unflipCard(oppositeCard);
+//                 flipCard(oppositeCard);
+//                 speakText(oppositeQuote);
+//             }, 800);
+//         }, 2000);
+//     });
+// });
